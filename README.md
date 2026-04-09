@@ -27,11 +27,19 @@ For Windows users, simply run the provided batch file:
 ```
 This script handles the compilation of the Java source files into the `bin/` directory and executes the main program.
 
-### Architecture
+## Object-Oriented Design & Architecture
 
-The project leverages a strict Model-View-Controller (MVC) architecture, paired with several GoF design patterns to ensure extensibility and solid OOP principles:
-- **Command Pattern**: Powers the Undo/Redo capabilities for graph navigation.
-- **Strategy Pattern**: Manages the usage of different mathematical metrics (Cosine vs. Euclidean).
+This project was built with a strong emphasis on clean code, extensibility, and strict Object-Oriented principles. It demonstrates practical implementations of GoF Design Patterns and SOLID principles:
+
+- **Model-View-Controller (MVC)**: 
+  The data and mathematical logic (Model) are strictly separated from the presentation layer (View). This decoupled architecture made it trivial to extend the project from a 2D view to a 3D UI without modifying a single line of the underlying data managers or math engines.
+- **Command Pattern**: 
+  Implemented for robust Undo/Redo functionality. Every navigation step (such as changing PCA axes) is encapsulated as a `Command` object, demonstrating a classic behavioral pattern for managing UI state history.
+- **Strategy Pattern**: 
+  Leveraged within the mathematics engine to seamlessly interchange distance algorithms (Cosine Similarity vs. Euclidean Distance) without altering the client code that executes the calculations.
+- **SOLID Principles**:
+  - *Single Responsibility Principle (SRP)*: Components are highly modular. Logic is cleanly split between `DataManager`, specialized `Math` classes, and UI controllers.
+  - *Open/Closed Principle (OCP)*: Distance metrics and mathematical behaviors are designed around interfaces, making the application open for new metrics but closed for modification.
 
 ## License
 
