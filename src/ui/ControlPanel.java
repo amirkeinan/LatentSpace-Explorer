@@ -80,6 +80,7 @@ public class ControlPanel extends JPanel {
         // Create projection panel with reference to graph
         CustomProjectionPanel projPanel = new CustomProjectionPanel();
         projPanel.setGraphPanel(graphPanel); // Enable graph visualization
+        projPanel.setControlPanel(this); // Enable switching view mode
         tabbedPane.addTab("Projection", projPanel);
 
         add(tabbedPane, BorderLayout.CENTER);
@@ -175,7 +176,8 @@ public class ControlPanel extends JPanel {
         // Z-axis starts disabled (only active in 3D mode)
         zAxisCombo.setEnabled(false);
 
-        // Add listener to update graph when selection changes, it means th UI tells us when the user wants to change the axes
+        // Add listener to update graph when selection changes, it means th UI tells us
+        // when the user wants to change the axes
         // This listener respects the isSyncingUI flag
         ActionListener axisListener = e -> updateAxes();
         xAxisCombo.addActionListener(axisListener);
@@ -266,6 +268,16 @@ public class ControlPanel extends JPanel {
         }
 
         mainFrame.switchViewMode(goTo3D);
+    }
+
+    /**
+     * Forces the application to switch to 2D mode.
+     * Used by panels (like Projection) that only support 2D visualization.
+     */
+    public void switchTo2DMode() {
+        if (mainFrame.is3DMode()) {
+            toggleViewMode();
+        }
     }
 
     /**

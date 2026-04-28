@@ -31,6 +31,7 @@ public class CustomProjectionPanel extends JPanel {
     private JSpinner kSpinner; // Number of words to show at each end
     private JLabel statusLabel; // Operation status
     private GraphPanel graphPanel; // Reference to main graph for visualization
+    private ControlPanel controlPanel; // Reference to control panel to switch view modes
 
     /**
      * Constructs the CustomProjectionPanel.
@@ -112,6 +113,17 @@ public class CustomProjectionPanel extends JPanel {
     }
 
     /**
+     * Sets the reference to the ControlPanel.
+     * This allows the projection panel to force the application back to 2D mode
+     * since projection is only supported on the 2D graph.
+     * 
+     * @param controlPanel The control panel reference.
+     */
+    public void setControlPanel(ControlPanel controlPanel) {
+        this.controlPanel = controlPanel;
+    }
+
+    /**
      * Projects all words onto the semantic axis defined by word1 -> word2.
      * 
      * The projection uses scalar projection formula:
@@ -186,6 +198,10 @@ public class CustomProjectionPanel extends JPanel {
 
         // Update the main graph visualization
         if (graphPanel != null) {
+            // Force switch to 2D mode since 3D doesn't support projection drawing
+            if (controlPanel != null) {
+                controlPanel.switchTo2DMode();
+            }
             graphPanel.setProjectionMode(projectionMap, w1, w2);
         }
 

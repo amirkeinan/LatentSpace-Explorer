@@ -234,6 +234,7 @@ public class GraphPanel3D extends JPanel {
 
         // JFXPanel is the bridge between Swing and JavaFX
         // It creates a JavaFX toolkit automatically on first instantiation
+        Platform.setImplicitExit(false); // Prevents JavaFX from shutting down when we switch to 2D
         jfxPanel = new JFXPanel();
         add(jfxPanel, BorderLayout.CENTER);
 
