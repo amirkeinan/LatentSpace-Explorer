@@ -55,6 +55,42 @@ public class DataManager {
      */
     public void loadData(String fullVectorsPath, String pcaVectorsPath) {
         try {
+            if (!Files.exists(Paths.get(fullVectorsPath)) || !Files.exists(Paths.get(pcaVectorsPath))) {
+                System.out.println("JSON files not found. Starting Python script to generate them...");
+                System.out.println("This may take a minute or two...");
+
+                try {
+                    ProcessBuilder pb = new ProcessBuilder("python", "embeddings_gen.py");
+                    pb.inheritIO();
+                    Process p;
+                    try {
+                        p = pb.start();
+                    } catch (IOException e) {
+                        try {
+                            pb.command("py", "embeddings_gen.py");
+                            p = pb.start();
+                        } catch (IOException e2) {
+                            pb.command("python3", "embeddings_gen.py");
+                            p = pb.start();
+                        }
+                    }
+
+                    int exitCode = p.waitFor();
+
+                    if (exitCode != 0) {
+                        System.err.println("Python script failed with exit code: " + exitCode);
+                        return;
+                    }
+                    System.out.println("Python script finished successfully.");
+                } catch (InterruptedException | IOException ex) {
+                    System.err.println("Python script execution failed: " + ex.getMessage());
+                    if (ex instanceof InterruptedException) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return;
+                }
+            }
+
             // Read all bytes to string (suitable for the scale of project like mine)
             String fullJson = new String(Files.readAllBytes(Paths.get(fullVectorsPath)));
             String pcaJson = new String(Files.readAllBytes(Paths.get(pcaVectorsPath)));
