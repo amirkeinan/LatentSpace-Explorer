@@ -31,11 +31,15 @@ public class VectorArithmeticPanel extends JPanel {
     private JTextField inputField; // User input: e.g., "king - man + woman"
     private JLabel resultLabel; // Status/error display
     private JTextArea resultArea; // Shows top matching words
+    private ControlPanel controlPanel; // Reference to control panel for passing the path
 
     /**
      * Constructs the VectorArithmeticPanel with input field and results display.
+     * 
+     * @param controlPanel Reference to the main ControlPanel
      */
-    public VectorArithmeticPanel() {
+    public VectorArithmeticPanel(ControlPanel controlPanel) {
+        this.controlPanel = controlPanel;
         setLayout(new BorderLayout(5, 5));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
@@ -45,12 +49,19 @@ public class VectorArithmeticPanel extends JPanel {
 
         JLabel instructionLabel = new JLabel("Equation (e.g., king - man + woman):");
         inputField = new JTextField();
+        
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        JButton clearButton = new JButton("Clear");
+        clearButton.addActionListener(e -> clear());
         JButton calcButton = new JButton("Calculate");
         calcButton.addActionListener(e -> calculate());
+        
+        buttonPanel.add(clearButton);
+        buttonPanel.add(calcButton);
 
         inputPanel.add(instructionLabel, BorderLayout.NORTH);
         inputPanel.add(inputField, BorderLayout.CENTER);
-        inputPanel.add(calcButton, BorderLayout.EAST);
+        inputPanel.add(buttonPanel, BorderLayout.EAST);
 
         add(inputPanel, BorderLayout.NORTH);
 
@@ -64,6 +75,18 @@ public class VectorArithmeticPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(resultArea);
         scrollPane.setBorder(BorderFactory.createTitledBorder("Top Matches"));
         add(scrollPane, BorderLayout.SOUTH);
+    }
+
+    /**
+     * Clears the input, results, and the graph path.
+     */
+    private void clear() {
+        inputField.setText("");
+        resultLabel.setText("Enter an equation and click Calculate.");
+        resultArea.setText("");
+        if (controlPanel != null) {
+            controlPanel.clearArithmeticPath();
+        }
     }
 
     /**
@@ -96,8 +119,12 @@ public class VectorArithmeticPanel extends JPanel {
         Matcher matcher = pattern.matcher(equation);
 
         Vector currentVec = null;
+        Vector currentPcaVec = null;
         String lastOp = "+"; // Default: first word is "added" (no preceding operator)
         List<String> processedTokens = new ArrayList<>();
+
+        List<Vector> pcaPath = new ArrayList<>();
+        List<String> labels = new ArrayList<>();
 
         // Process each token found by the regex
         while (matcher.find()) {
@@ -117,19 +144,27 @@ public class VectorArithmeticPanel extends JPanel {
                 }
 
                 Vector v = we.getDenseVector();
+                Vector pcaV = we.getPcaVector();
 
                 // Apply the operation
                 if (currentVec == null) {
                     // First word: initialize the accumulator
                     currentVec = v;
+                    currentPcaVec = pcaV;
+                    labels.add(word);
                 } else {
                     // Subsequent words: add or subtract
                     if (lastOp.equals("+")) {
                         currentVec = currentVec.add(v);
+                        currentPcaVec = currentPcaVec.add(pcaV);
                     } else if (lastOp.equals("-")) {
                         currentVec = currentVec.subtract(v);
+                        currentPcaVec = currentPcaVec.subtract(pcaV);
                     }
+                    labels.add(lastOp + " " + word);
                 }
+
+                pcaPath.add(currentPcaVec);
 
                 // Track for debug/display
                 processedTokens.add((lastOp.equals("-") ? "-" : "+") + word);
@@ -139,7 +174,19 @@ public class VectorArithmeticPanel extends JPanel {
         // Find words closest to the resulting vector
         if (currentVec != null) {
             resultLabel.setText("Result for: " + String.join(" ", processedTokens));
-            findClosest(currentVec);
+            
+            // Extract just the raw words without the +/- operators to pass for filtering
+            List<String> rawInputWords = new ArrayList<>();
+            for (String token : processedTokens) {
+                rawInputWords.add(token.substring(1)); // Remove the leading + or -
+            }
+            
+            String closestWord = findClosest(currentVec, rawInputWords); // Modified to return the closest word
+
+            // Send the arithmetic path to the GraphPanel
+            if (controlPanel != null) {
+                controlPanel.showArithmeticPath(pcaPath, labels, closestWord);
+            }
         } else {
             resultLabel.setText("Error: Could not parse equation. Use format: word1 - word2 + word3");
             resultArea.setText("");
@@ -159,15 +206,22 @@ public class VectorArithmeticPanel extends JPanel {
      * the closest matches). In production, you might want to filter them out.
      *
      * @param target The calculated result vector from the arithmetic operation.
+     * @param inputWords List of input words to exclude from the results.
+     * @return The string of the most similar word.
      */
-    private void findClosest(Vector target) {
+    private String findClosest(Vector target, List<String> inputWords) {
         List<WordEmbedding> all = DataManager.getInstance().getEmbeddings();
         CosineSimilarity cos = new CosineSimilarity();
 
-        // Create sorted copy - don't modify original!
-        // Time: O(N log N) where N = vocabulary size
-        List<WordEmbedding> sorted = new ArrayList<>(all);
-        sorted.sort((w1, w2) -> {
+        // Create sorted copy, filtering out the input words
+        List<WordEmbedding> filtered = new ArrayList<>();
+        for (WordEmbedding we : all) {
+            if (!inputWords.contains(we.getWord())) {
+                filtered.add(we);
+            }
+        }
+        
+        filtered.sort((w1, w2) -> {
             double sim1 = cos.calculate(target, w1.getDenseVector());
             double sim2 = cos.calculate(target, w2.getDenseVector());
             return Double.compare(sim2, sim1); // Descending (highest similarity first)
@@ -178,12 +232,14 @@ public class VectorArithmeticPanel extends JPanel {
         sb.append("Rank  Word            Similarity\n");
         sb.append("────────────────────────────────\n");
 
-        for (int i = 0; i < Math.min(5, sorted.size()); i++) {
-            WordEmbedding we = sorted.get(i);
+        for (int i = 0; i < Math.min(5, filtered.size()); i++) {
+            WordEmbedding we = filtered.get(i);
             double score = cos.calculate(target, we.getDenseVector());
             sb.append(String.format("%2d.   %-15s %.4f\n", i + 1, we.getWord(), score));
         }
 
         resultArea.setText(sb.toString());
+        
+        return filtered.isEmpty() ? null : filtered.get(0).getWord();
     }
 }

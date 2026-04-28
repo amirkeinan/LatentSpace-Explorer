@@ -731,4 +731,13 @@ public class GraphPanel3D extends JPanel {
             });
         }
     }
+
+    /**
+     * Gets the currently selected word string.
+     * 
+     * @return The word string or null if nothing is selected.
+     */
+    public String getSelectedWordString() {
+        return selectedWord != null ? selectedWord.getWord() : null;
+    }
 }

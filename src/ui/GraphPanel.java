@@ -64,6 +64,11 @@ public class GraphPanel extends JPanel {
     private WordEmbedding selectedWord; // Currently selected word (red highlight)
     private List<WordEmbedding> nearestNeighbors; // K-nearest neighbors (orange highlight)
 
+    // === VECTOR ARITHMETIC PATH STATE ===
+    private List<Vector> arithmeticPathVectors; // Sequence of PCA vectors in the arithmetic equation
+    private List<String> arithmeticPathLabels; // Labels for each step (e.g., "king", "-man", "+woman")
+    private String arithmeticResultWord; // The word closest to the final result
+
     /**
      * Gets the current PC index for the X-axis.
      * 
@@ -201,7 +206,40 @@ public class GraphPanel extends JPanel {
     }
 
     /**
-     * Checks if a user click hits a point on the graph.
+     * Renders a vector arithmetic path on the graph.
+     * 
+     * @param pcaPath    List of intermediate PCA vectors
+     * @param labels     List of labels for each step
+     * @param resultWord The closest word to the final vector
+     */
+    public void setArithmeticPath(List<Vector> pcaPath, List<String> labels, String resultWord) {
+        this.arithmeticPathVectors = pcaPath;
+        this.arithmeticPathLabels = labels;
+        this.arithmeticResultWord = resultWord;
+        this.projectionMode = false; // Must be in scatter mode to draw paths
+        
+        // Optional: center the view roughly on the start of the path
+        if (pcaPath != null && !pcaPath.isEmpty()) {
+            Vector startVec = pcaPath.get(0);
+            offsetX = (int) (getWidth() / 2.0 - startVec.get(xAxisIndex) * scale);
+            offsetY = (int) (getHeight() / 2.0 - (-startVec.get(yAxisIndex) * scale));
+        }
+        
+        repaint();
+    }
+
+    /**
+     * Clears the arithmetic path display.
+     */
+    public void clearArithmeticPath() {
+        this.arithmeticPathVectors = null;
+        this.arithmeticPathLabels = null;
+        this.arithmeticResultWord = null;
+        repaint();
+    }
+
+    // ========================================================================
+    /**
      * Uses a 10-pixel "hitbox" radius for easier selection.
      * 
      * @param p The screen coordinate of the click.
@@ -507,6 +545,87 @@ public class GraphPanel extends JPanel {
         if (selectedWord != null) {
             g2d.drawString("Selected: " + selectedWord.getWord(), 10, 65);
         }
+
+        // === DRAW VECTOR ARITHMETIC PATH ===
+        if (arithmeticPathVectors != null && !arithmeticPathVectors.isEmpty()) {
+            g2d.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            
+            Point prevPt = null;
+            for (int i = 0; i < arithmeticPathVectors.size(); i++) {
+                Vector pca = arithmeticPathVectors.get(i);
+                Point pt = toScreen(pca);
+                
+                if (prevPt != null) {
+                    // draw arrow from prevPt to pt
+                    drawArrow(g2d, prevPt.x, prevPt.y, pt.x, pt.y);
+                }
+                
+                // Draw intermediate point
+                g2d.setColor(new Color(180, 0, 180)); // Deep magenta
+                g2d.fillOval(pt.x - 5, pt.y - 5, 10, 10);
+                
+                // Draw label with a small background for readability
+                String label = arithmeticPathLabels.get(i);
+                FontMetrics fm = g2d.getFontMetrics();
+                int textWidth = fm.stringWidth(label);
+                int textX = pt.x + 10;
+                int textY = pt.y - 10;
+                
+                g2d.setColor(new Color(255, 255, 255, 200));
+                g2d.fillRect(textX - 2, textY - fm.getAscent() - 2, textWidth + 4, fm.getHeight() + 4);
+                
+                g2d.setColor(Color.BLACK);
+                g2d.setFont(new Font("SansSerif", Font.BOLD, 12));
+                g2d.drawString(label, textX, textY);
+                
+                prevPt = pt;
+            }
+            
+            // Draw closest result word and dashed connection
+            if (arithmeticResultWord != null && prevPt != null) {
+                WordEmbedding resultWe = DataManager.getInstance().getEmbedding(arithmeticResultWord);
+                if (resultWe != null) {
+                    Point resultPt = toScreen(resultWe.getPcaVector());
+                    
+                    // Draw dashed line from path end to the real word
+                    Stroke dashed = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6}, 0);
+                    g2d.setStroke(dashed);
+                    g2d.setColor(Color.DARK_GRAY);
+                    g2d.drawLine(prevPt.x, prevPt.y, resultPt.x, resultPt.y);
+                    
+                    // Highlight the actual word
+                    g2d.setColor(new Color(0, 150, 50)); // Dark green
+                    g2d.fillOval(resultPt.x - 7, resultPt.y - 7, 14, 14);
+                    
+                    g2d.setColor(Color.BLACK);
+                    g2d.drawString("Closest: " + arithmeticResultWord, resultPt.x + 12, resultPt.y + 15);
+                }
+            }
+            
+            // Reset stroke
+            g2d.setStroke(new BasicStroke(1.0f));
+        }
+    }
+
+    /**
+     * Helper to draw a line with an arrowhead.
+     */
+    private void drawArrow(Graphics2D g2, int x1, int y1, int x2, int y2) {
+        g2.setColor(new Color(180, 0, 180)); // Deep magenta
+        g2.drawLine(x1, y1, x2, y2);
+        
+        // Don't draw arrowhead if points are too close
+        if (Point.distance(x1, y1, x2, y2) < 5) return;
+        
+        double angle = Math.atan2(y2 - y1, x2 - x1);
+        int arrowLength = 12;
+        int x3 = (int) (x2 - arrowLength * Math.cos(angle - Math.PI / 6));
+        int y3 = (int) (y2 - arrowLength * Math.sin(angle - Math.PI / 6));
+        int x4 = (int) (x2 - arrowLength * Math.cos(angle + Math.PI / 6));
+        int y4 = (int) (y2 - arrowLength * Math.sin(angle + Math.PI / 6));
+        
+        g2.drawLine(x2, y2, x3, y3);
+        g2.drawLine(x2, y2, x4, y4);
     }
 
     /**
@@ -537,5 +656,14 @@ public class GraphPanel extends JPanel {
 
             repaint();
         }
+    }
+
+    /**
+     * Gets the currently selected word string.
+     * 
+     * @return The word string or null if nothing is selected.
+     */
+    public String getSelectedWordString() {
+        return selectedWord != null ? selectedWord.getWord() : null;
     }
 }

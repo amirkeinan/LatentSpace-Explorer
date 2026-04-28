@@ -21,6 +21,7 @@ public class SubspacePanel extends JPanel {
     private JTextArea resultArea; // Displays the K nearest words to centroid
     private JLabel statusLabel; // Shows current operation status
     private JSpinner kSpinner; // User-controlled K value for neighbor count
+    private ControlPanel controlPanel; // Reference to access selected words from graph
 
     /**
      * Constructs the SubspacePanel with proper layout.
@@ -34,9 +35,81 @@ public class SubspacePanel extends JPanel {
         JPanel topSection = new JPanel(new BorderLayout(5, 5));
         topSection.setBorder(BorderFactory.createTitledBorder("Subspace & Centroid Analysis"));
 
-        // Label for input
-        JLabel inputLabel = new JLabel("Enter words (comma/newline separated):");
-        topSection.add(inputLabel, BorderLayout.NORTH);
+        // Selection Tools Panel (Combo box + Graph selection)
+        JPanel selectionPanel = new JPanel(new GridLayout(2, 2, 5, 5));
+
+        JComboBox<String> wordCombo = new JComboBox<>();
+        List<WordEmbedding> embeddings = DataManager.getInstance().getEmbeddings();
+        if (embeddings != null) {
+            List<String> words = new ArrayList<>();
+            for (WordEmbedding we : embeddings) {
+                words.add(we.getWord());
+            }
+            words.sort(String.CASE_INSENSITIVE_ORDER);
+            for (String w : words) {
+                wordCombo.addItem(w);
+            }
+        }
+
+        // Fix: Enable multi-character search in the combo box
+        wordCombo.setKeySelectionManager(new JComboBox.KeySelectionManager() {
+            private long lastTime = 0;
+            private String prefix = "";
+
+            @Override
+            public int selectionForKey(char aKey, ComboBoxModel aModel) {
+                long now = System.currentTimeMillis();
+                // Reset search prefix if more than 1 second has passed since last keypress
+                if (now - lastTime > 1000) {
+                    prefix = "";
+                }
+                lastTime = now;
+
+                if (Character.isLetterOrDigit(aKey) || aKey == '-' || aKey == '_') {
+                    prefix += Character.toLowerCase(aKey);
+                }
+
+                for (int i = 0; i < aModel.getSize(); i++) {
+                    String item = aModel.getElementAt(i).toString().toLowerCase();
+                    if (item.startsWith(prefix)) {
+                        return i;
+                    }
+                }
+                return -1;
+            }
+        });
+
+        JButton addFromListBtn = new JButton("Add from List");
+        addFromListBtn.addActionListener(e -> {
+            String selected = (String) wordCombo.getSelectedItem();
+            if (selected != null) {
+                appendWordToInput(selected);
+            }
+        });
+
+        JButton addFromGraphBtn = new JButton("Add from Graph");
+        addFromGraphBtn.addActionListener(e -> {
+            if (controlPanel != null) {
+                String selected = controlPanel.getSelectedWordFromGraph();
+                if (selected != null) {
+                    appendWordToInput(selected);
+                    statusLabel.setText("Status: Added '" + selected + "' from graph.");
+                } else {
+                    statusLabel.setText("Status: No word selected on graph. Click a word first.");
+                }
+            }
+        });
+
+        selectionPanel.add(new JLabel("Word List:"));
+        selectionPanel.add(wordCombo);
+        selectionPanel.add(addFromListBtn);
+        selectionPanel.add(addFromGraphBtn);
+
+        JPanel northPanel = new JPanel(new BorderLayout(5, 5));
+        northPanel.add(selectionPanel, BorderLayout.NORTH);
+        northPanel.add(new JLabel("Or enter words (comma/newline separated):"), BorderLayout.SOUTH);
+
+        topSection.add(northPanel, BorderLayout.NORTH);
 
         // Text area for word input
         inputArea = new JTextArea(4, 20);
@@ -79,6 +152,30 @@ public class SubspacePanel extends JPanel {
         statusLabel = new JLabel("Status: Ready");
         statusLabel.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
         add(statusLabel, BorderLayout.SOUTH);
+    }
+
+    /**
+     * Sets the reference to the ControlPanel.
+     * 
+     * @param controlPanel The control panel.
+     */
+    public void setControlPanel(ControlPanel controlPanel) {
+        this.controlPanel = controlPanel;
+    }
+
+    /**
+     * Helper to append a word to the input area uniquely.
+     */
+    private void appendWordToInput(String word) {
+        String currentText = inputArea.getText().trim();
+        if (currentText.isEmpty()) {
+            inputArea.setText(word);
+        } else {
+            // Very simple check to avoid consecutive duplicates
+            if (!currentText.contains(word)) {
+                inputArea.setText(currentText + ",\n" + word);
+            }
+        }
     }
 
     /**

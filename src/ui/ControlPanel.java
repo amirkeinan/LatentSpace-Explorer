@@ -8,8 +8,10 @@ import math.EuclideanDistance;
 import math.DistanceMetric;
 import model.DataManager;
 import model.WordEmbedding;
+import model.Vector;
 import command.CommandManager;
 import command.ChangeAxisCommand;
+import java.util.List;
 
 /**
  * The side panel providing user controls for the application.
@@ -74,8 +76,13 @@ public class ControlPanel extends JPanel {
 
         tabbedPane.addTab("Navigation", createNavigationPanel());
         tabbedPane.addTab("Distance", createDistancePanel());
-        tabbedPane.addTab("Arithmetic", new VectorArithmeticPanel());
-        tabbedPane.addTab("Subspace", new SubspacePanel());
+
+        VectorArithmeticPanel arithmeticPanel = new VectorArithmeticPanel(this);
+        tabbedPane.addTab("Arithmetic", arithmeticPanel);
+
+        SubspacePanel subspacePanel = new SubspacePanel();
+        subspacePanel.setControlPanel(this);
+        tabbedPane.addTab("Subspace", subspacePanel);
 
         // Create projection panel with reference to graph
         CustomProjectionPanel projPanel = new CustomProjectionPanel();
@@ -278,6 +285,37 @@ public class ControlPanel extends JPanel {
         if (mainFrame.is3DMode()) {
             toggleViewMode();
         }
+    }
+
+    /**
+     * Gets the currently selected word from the active graph panel.
+     * 
+     * @return The selected word string, or null if none selected.
+     */
+    public String getSelectedWordFromGraph() {
+        if (mainFrame.is3DMode()) {
+            return graphPanel3D.getSelectedWordString();
+        } else {
+            return graphPanel.getSelectedWordString();
+        }
+    }
+
+    /**
+     * Shows a vector arithmetic path on the graph.
+     * Forces the view to 2D mode if currently in 3D.
+     */
+    public void showArithmeticPath(List<Vector> pcaPath, List<String> labels, String resultWord) {
+        if (mainFrame.is3DMode()) {
+            switchTo2DMode();
+        }
+        graphPanel.setArithmeticPath(pcaPath, labels, resultWord);
+    }
+    
+    /**
+     * Clears the vector arithmetic path from the graph.
+     */
+    public void clearArithmeticPath() {
+        graphPanel.clearArithmeticPath();
     }
 
     /**
