@@ -303,6 +303,10 @@ public class ControlPanel extends JPanel {
     /**
      * Shows a vector arithmetic path on the graph.
      * Forces the view to 2D mode if currently in 3D.
+     * 
+     * @param pcaPath    List of intermediate PCA vectors representing the path
+     * @param labels     List of string labels for each step in the path
+     * @param resultWord The closest word to the final vector result
      */
     public void showArithmeticPath(List<Vector> pcaPath, List<String> labels, String resultWord) {
         if (mainFrame.is3DMode()) {

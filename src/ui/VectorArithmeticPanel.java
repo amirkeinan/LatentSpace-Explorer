@@ -22,6 +22,7 @@ import math.CosineSimilarity;
  * 2. Retrieves the vector for each word
  * 3. Performs the arithmetic: V(king) - V(man) + V(woman)
  * 4. Finds words whose vectors are most similar to the result
+ * 5. Passes the intermediate PCA vectors to ControlPanel to draw the path on the 2D graph
  * 
  * IMPORTANT: Spaces are optional! Both "king-man+woman" and "king - man +
  * woman"

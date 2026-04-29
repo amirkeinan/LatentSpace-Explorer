@@ -14,6 +14,11 @@ import math.CosineSimilarity;
  * Users input a group of related words (e.g., "apple, pear, banana"),
  * and the system calculates their "Centroid" (average vector) to identify
  * the central concept and find other words belonging to this cluster.
+ * 
+ * Includes visual word selection tools:
+ * 1. Searchable JComboBox for precise word selection from the dataset
+ * 2. "Add from Graph" button to capture the currently clicked word in 2D or 3D
+ * 
  * The user can control the value of K (number of neighbors to display).
  */
 public class SubspacePanel extends JPanel {
