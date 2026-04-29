@@ -5,12 +5,12 @@ LatentSpace Explorer allows users to navigate the semantic relationships between
 
 ## Features
 
-- **2D & 3D Visualization**: Interactive visual mapping of word embeddings using Java Swing, and JavaFX.
+- **2D & 3D Visualization**: Interactive visual mapping of word embeddings using Java Swing and JavaFX.
 - **PCA Axis Navigation**: Choose specific Principal Components (e.g., PC1, PC2, PC3) to explore different semantic axes.
 - **Semantic Distance**: Calculate cosine similarity and Euclidean distance between word pairs.
-- **Vector Arithmetic**: Perform complex semantic math (e.g., *King - Man + Woman = Queen*).
-- **Subspace Analysis**: Analyze properties of word groups and compute their centroids.
-- **Projection**: Project words onto custom semantic axes.
+- **Vector Arithmetic**: Perform complex semantic math (e.g., *King - Man + Woman = Queen*) with visual paths drawn directly on the 2D graph.
+- **Subspace Analysis**: Analyze properties of word groups and compute their centroids. Includes intuitive tools to add words graphically from the active view or via autocomplete text search.
+- **Projection**: Project words onto custom semantic axes (1D mapping) with full panning and zoom support to explore dense clusters.
 - **Undo/Redo Tracking**: Navigation history is preserved, allowing smooth and easy view adjustments using the Command Pattern.
 
 ## Getting Started
